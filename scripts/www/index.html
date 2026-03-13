@@ -3,283 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>出租管理系统</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>游戏账号出租管理系统</title>
+    <link rel="stylesheet" href="sky.css">
+    <script src="https://nie.res.netease.com/comm/js/jquery(mixNIE).1.11.js"></script>
+    <script src="js/sky-login.js"></script>
+    <style>
+        /* 自定义样式补充 */
+        .title-section {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-title {
+            font-size: 42px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+            white-space: nowrap;
+        }
+
+        .main-title-img {
+            height: 80px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+        }
+
+        .sub-title {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 2px;
+        }
+
+        .sub-title-img {
+            height: auto;
+            width: 85%;
+            max-width: 400px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            margin-top: 20px;
+        }
+
+        /* 使用本地背景图 */
+        .page-1 .bg {
+            background-image: url(tp/bg1.jpg) !important;
+            background-size: cover;
+            background-position: center;
+            -webkit-transition: .3s all;
+            -moz-transition: .3s all;
+            -ms-transition: .3s all;
+            -o-transition: .3s all;
+            transition: .3s all;
+        }
+
+        /* 点击进入时背景虚化 */
+        .page-1.status2 .bg {
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+        }
+
+        /* 点击进入时标题区域也虚化 */
+        .page-1.status2 .title-section {
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+            -webkit-transition: .3s all;
+            -moz-transition: .3s all;
+            -ms-transition: .3s all;
+            -o-transition: .3s all;
+            transition: .3s all;
+        }
+
+        /* 点击进入时隐藏按钮 */
+        .page-1.status2 .btn-enter {
+            display: none;
+        }
+
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            html, body {
+                min-width: 320px;
+            }
+            
+            .wrap {
+                min-width: 320px;
+                max-width: 100vw;
+                max-height: 100vh;
+            }
+            
+            .main-title {
+                font-size: 28px;
+                letter-spacing: 2px;
+            }
+
+            .main-title-img {
+                height: 60px;
+                margin-bottom: 25px;
+            }
+
+            .sub-title {
+                font-size: 14px;
+                letter-spacing: 1px;
+            }
+
+            .sub-title-img {
+                height: auto;
+                width: 90%;
+                max-width: 350px;
+                margin-top: 15px;
+            }
+            
+            .title-section {
+                top: 25%;
+            }
+            
+            /* 调整按钮位置 */
+            .page-1 .btn-enter {
+                width: 140px !important;
+                height: 140px !important;
+                margin-left: -70px !important;
+                top: auto !important;
+                bottom: 20% !important;
+            }
+            
+            /* 调整过渡动画 */
+            .page-1 .guodu {
+                width: 250px !important;
+                height: 425px !important;
+            }
+        }
+        
+        /* 超小屏幕适配 */
+        @media (max-width: 375px) {
+            .main-title {
+                font-size: 24px;
+            }
+
+            .sub-title {
+                font-size: 12px;
+            }
+
+            .main-title-img {
+                height: 50px;
+                margin-bottom: 20px;
+            }
+
+            .sub-title-img {
+                height: auto;
+                width: 95%;
+                max-width: 320px;
+                margin-top: 12px;
+            }
+            
+            .page-1 .btn-enter {
+                width: 120px !important;
+                height: 120px !important;
+                margin-left: -60px !important;
+                bottom: 18% !important;
+            }
+        }
+        
+        /* 横屏适配 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .title-section {
+                top: 18%;
+            }
+
+            .main-title {
+                font-size: 24px;
+            }
+
+            .main-title-img {
+                height: 45px;
+                margin-bottom: 15px;
+            }
+
+            .sub-title-img {
+                height: auto;
+                width: 80%;
+                max-width: 300px;
+                margin-top: 10px;
+            }
+
+            .page-1 .btn-enter {
+                width: 100px !important;
+                height: 100px !important;
+                margin-left: -50px !important;
+                bottom: 10% !important;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>出租管理系统</h1>
-            <span id="currentUserDisplay" style="color: white; margin-right: 10px;"></span>
-            <button class="logout-btn" onclick="logout()">退出登录</button>
-        </header>
-
-        <!-- 模式选择 -->
-        <div class="mode-tabs">
-            <button class="mode-tab active" data-mode="account" onclick="switchMode('account')">📱 账号出租</button>
-            <button class="mode-tab" data-mode="house" onclick="switchMode('house')">🏠 租房</button>
-            <button class="mode-tab" data-mode="car" onclick="switchMode('car')">🚗 租车</button>
-            <button class="mode-tab" data-mode="course" onclick="switchMode('course')">📚 课时</button>
-        </div>
-
-        <!-- 添加表单 -->
-        <section class="add-account-section">
-            <h2 id="formTitle">添加新账号</h2>
-            <form id="accountForm">
-                <!-- 账号模式字段 -->
-                <div id="accountFields">
-                    <div class="form-group">
-                        <label for="accountName">账号名称</label>
-                        <input type="text" id="accountName" placeholder="请输入账号名称">
-                    </div>
-                    <div class="form-group">
-                        <label for="phoneNumber">绑定手机</label>
-                        <input type="tel" id="phoneNumber" placeholder="请输入手机号码">
-                    </div>
+    <!-- 页面容器 -->
+    <div class="wrap">
+        <div class="main">
+            <div class="page page-1 on">
+                <!-- 背景 -->
+                <div class="bg"></div>
+                
+                <!-- 标题 -->
+                <div class="title-section">
+                    <img src="tp/logo6.png" alt="光遇" class="main-title-img">
+                    <img src="tp/slogan_1345230.png" alt="管理系统" class="sub-title-img">
                 </div>
-
-                <!-- 租房模式字段 -->
-                <div id="houseFields" style="display:none;">
-                    <div class="form-group">
-                        <label for="houseName">租客姓名</label>
-                        <input type="text" id="houseName" placeholder="请输入租客姓名">
-                    </div>
-                    <div class="form-group">
-                        <label for="houseIdCard">身份证号码</label>
-                        <input type="text" id="houseIdCard" placeholder="请输入身份证号码" maxlength="18">
-                    </div>
-                    <div class="form-group">
-                        <label for="housePhone">联系电话</label>
-                        <input type="tel" id="housePhone" placeholder="请输入联系电话">
-                    </div>
-                    <div class="form-group">
-                        <label for="houseAddress">租房地址</label>
-                        <input type="text" id="houseAddress" placeholder="请输入租房地址">
-                    </div>
-                    <div class="form-group">
-                        <label for="houseDeposit">押金（元）</label>
-                        <input type="number" id="houseDeposit" placeholder="请输入押金金额">
-                    </div>
-                    <div class="form-group">
-                        <label for="houseMonthlyRent">月租金（元）</label>
-                        <input type="number" id="houseMonthlyRent" placeholder="请输入月租金">
-                    </div>
-                </div>
-
-                <!-- 租车模式字段 -->
-                <div id="carFields" style="display:none;">
-                    <div class="form-group">
-                        <label for="carModel">车子型号</label>
-                        <input type="text" id="carModel" placeholder="如：宝马X5 2023款">
-                    </div>
-                    <div class="form-group">
-                        <label for="carPlate">车牌号</label>
-                        <input type="text" id="carPlate" placeholder="请输入车牌号">
-                    </div>
-                    <div class="form-group">
-                        <label for="carColor">车辆颜色</label>
-                        <input type="text" id="carColor" placeholder="如：黑色、白色">
-                    </div>
-                    <div class="form-group">
-                        <label for="carContactName">联系人姓名</label>
-                        <input type="text" id="carContactName" placeholder="请输入联系人姓名">
-                    </div>
-                    <div class="form-group">
-                        <label for="carPhone">联系电话</label>
-                        <input type="tel" id="carPhone" placeholder="请输入联系电话">
-                    </div>
-                    <div class="form-group">
-                        <label for="carWechat">微信号</label>
-                        <input type="text" id="carWechat" placeholder="请输入微信号">
-                    </div>
-                    <div class="form-group">
-                        <label for="carDailyRent">日租金（元）</label>
-                        <input type="number" id="carDailyRent" placeholder="请输入日租金">
-                    </div>
-                </div>
-
-                <!-- 课时模式字段 -->
-                <div id="courseFields" style="display:none;">
-                    <div class="form-group">
-                        <label for="courseName">课程名称</label>
-                        <input type="text" id="courseName" placeholder="如：钢琴课、游泳课">
-                    </div>
-                    <div class="form-group">
-                        <label for="courseStudent">学员姓名</label>
-                        <input type="text" id="courseStudent" placeholder="请输入学员姓名">
-                    </div>
-                    <div class="form-group">
-                        <label for="coursePhone">联系电话</label>
-                        <input type="tel" id="coursePhone" placeholder="请输入联系电话">
-                    </div>
-                    <div class="form-group">
-                        <label for="courseTotal">总课时数</label>
-                        <input type="number" id="courseTotal" placeholder="请输入总课时数">
-                    </div>
-                    <div class="form-group">
-                        <label for="courseTeacher">授课老师</label>
-                        <input type="text" id="courseTeacher" placeholder="请输入授课老师">
-                    </div>
-                    <div class="form-group">
-                        <label for="coursePrice">课程价格（元）</label>
-                        <input type="number" id="coursePrice" placeholder="请输入课程价格">
-                    </div>
-                </div>
-
-                <!-- 通用租期字段 -->
-                <div class="form-group">
-                    <label for="rentDuration" id="durationLabel">租期/时长</label>
-                    <input type="number" id="rentDuration" placeholder="分钟" min="0" value="0">
-                    <div class="quick-rent-buttons" id="quickButtons">
-                        <button type="button" onclick="setRentDuration(60)">1小时</button>
-                        <button type="button" onclick="setRentDuration(1440)">1天</button>
-                        <button type="button" onclick="setRentDuration(10080)">1周</button>
-                        <button type="button" onclick="setRentDuration(43200)">1个月</button>
-                        <button type="button" onclick="setRentDuration(525600)">1年</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="autoRent"> <span id="autoRentLabel">立即出租</span>
-                    </label>
-                </div>
-                <button type="submit" class="btn btn-primary">添加</button>
-            </form>
-        </section>
-
-        <!-- 模式/状态筛选 -->
-        <div class="filter-section">
-            <label for="modeFilter">模式：</label>
-            <select id="modeFilter" onchange="filterByMode()">
-                <option value="all">全部模式</option>
-                <option value="account">账号出租</option>
-                <option value="house">租房</option>
-                <option value="car">租车</option>
-                <option value="course">课时</option>
-            </select>
-            <label for="statusFilter">状态：</label>
-            <select id="statusFilter">
-                <option value="all">全部</option>
-                <option value="idle">空闲</option>
-                <option value="rented">出租中</option>
-                <option value="expiring">即将到期</option>
-                <option value="expired">已到期</option>
-            </select>
-        </div>
-
-        <!-- 账号列表 -->
-        <section class="accounts-section">
-            <h2 class="section-title">账号列表 <span class="badge" id="accountCount">0</span></h2>
-            <div id="accountsList"></div>
-        </section>
-
-        <!-- 回收站 -->
-        <section class="recycle-bin-section">
-            <h3>
-                回收站 <span class="badge" id="deletedCount">0</span>
-                <button class="btn btn-small btn-danger" onclick="emptyRecycleBin()" style="margin-left: auto;">清空回收站</button>
-            </h3>
-            <div id="recycleBinList"></div>
-        </section>
-
-        <!-- 数据说明 -->
-        <section class="data-info-section">
-            <h3>数据存储说明</h3>
-            <p>数据都是本地存储，无联网行为，数据请妥善保管</p>
-            <p>数据保存位置：<code id="dataStoragePath"></code></p>
-            <div class="btn-group">
-                <button class="btn btn-small" onclick="exportData()">📤 导出数据</button>
-                <button class="btn btn-small" onclick="importData()">📥 导入数据</button>
-                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="handleImport(event)">
+                
+                <!-- 点击进入按钮 - 使用sky.css中的样式 -->
+                <a href="javascript:;" class="btn-enter" title="点击进入"></a>
+                
+                <!-- 过渡动画 - 使用sky.css中的样式 -->
+                <div class="guodu"></div>
             </div>
-        </section>
+        </div>
     </div>
 
-    <script src="app.js"></script>
-    <script>
-        // 更新账号数量
-        function updateCount() {
-            document.getElementById('accountCount').textContent = accounts.length;
-            document.getElementById('deletedCount').textContent = deletedAccounts.length;
-        }
-
-        // 覆写renderAccounts来更新计数
-        const originalRenderAccounts = renderAccounts;
-        renderAccounts = function() {
-            originalRenderAccounts();
-            updateCount();
-        };
-
-        // 覆写renderRecycleBin来更新计数
-        const originalRenderRecycleBin = renderRecycleBin;
-        renderRecycleBin = function() {
-            originalRenderRecycleBin();
-            updateCount();
-        };
-
-        // 导出数据
-        function exportData() {
-            const currentUser = sessionStorage.getItem('currentUser') || 'default';
-            const data = {
-                user: currentUser,
-                exportTime: new Date().toISOString(),
-                accounts: localStorage.getItem('accounts_' + currentUser),
-                deletedAccounts: localStorage.getItem('deleted_accounts_' + currentUser)
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `租号系统_备份_${currentUser}_${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('数据导出成功！', 'success');
-        }
-
-        // 导入数据
-        function importData() {
-            document.getElementById('importFile').click();
-        }
-
-        // 处理导入
-        function handleImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    const currentUser = sessionStorage.getItem('currentUser') || 'default';
-
-                    if (data.accounts) {
-                        localStorage.setItem('accounts_' + currentUser, data.accounts);
-                    }
-                    if (data.deletedAccounts) {
-                        localStorage.setItem('deleted_accounts_' + currentUser, data.deletedAccounts);
-                    }
-
-                    // 重新加载数据
-                    if (typeof loadAccounts === 'function') loadAccounts();
-                    if (typeof loadDeletedAccounts === 'function') loadDeletedAccounts();
-                    if (typeof renderAccounts === 'function') renderAccounts();
-                    if (typeof renderRecycleBin === 'function') renderRecycleBin();
-
-                    showNotification('数据导入成功！', 'success');
-                } catch (err) {
-                    showNotification('数据导入失败，文件格式错误！', 'error');
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        // 页面加载时检查登录状态
-        checkLogin();
-        displayCurrentUser();
-        displayDataPath();
-    </script>
+    <!-- 使用sky-login.js处理点击进入动画 -->
 </body>
 </html>
