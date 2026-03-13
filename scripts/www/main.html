@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏账号出租管理系统</title>
+    <link href="tailwind.min.css" rel="stylesheet">
+    <style>
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .status-available { background-color: #10B981; }
+        .status-rented { background-color: #F59E0B; }
+        .status-maintenance { background-color: #EF4444; }
+        .game-sky { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .game-lol { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .game-wzry { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .game-genshin { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            transition: all 0.3s ease;
+            transform: translateX(0);
+        }
+        .notification.success { background-color: #10B981; }
+        .notification.error { background-color: #EF4444; }
+        .notification.warning { background-color: #F59E0B; }
+        .notification.info { background-color: #3B82F6; }
+        .icon { width: 1em; height: 1em; display: inline-block; vertical-align: middle; }
+        .icon-lg { width: 1.5em; height: 1.5em; }
+        .icon-xl { width: 2em; height: 2em; }
+
+        /* 蜡烛和爱心图标样式 */
+        .candle-icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        .candle-red { color: #ff4444; }
+        .candle-white { color: #ffffff; }
+        .heart-icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+            color: #ff6b9d;
+        }
+
+        /* 滑块样式 */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #9333ea;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #9333ea;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* 手机端统计卡片正方形布局 */
+        @media (max-width: 768px) {
+            .stat-card {
+                aspect-ratio: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem !important;
+            }
+            .stat-card .icon-wrapper {
+                width: 3rem;
+                height: 3rem;
+                margin-bottom: 0.5rem;
+            }
+            .stat-card .stat-label {
+                font-size: 0.75rem;
+                margin-bottom: 0.25rem;
+            }
+            .stat-card .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background: linear-gradient(to bottom right, #f9fafb, #f3f4f6);">
+    <!-- 背景亮度层（覆盖整个页面背景，包括导航栏下方） -->
+    <div id="bgBrightnessLayer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0); pointer-events: none; z-index: 0;"></div>
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center min-w-0">
+                    <svg class="icon icon-xl text-blue-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                    <h1 class="text-base sm:text-xl font-bold text-gray-800 truncate">游戏账号出租管理系统</h1>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+                    <button onclick="showNotificationSettings()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 sm:px-4 py-2 rounded-lg flex items-center transition duration-300" title="通知设置">
+                        <svg class="icon mr-0 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span class="hidden sm:inline">通知</span>
+                        <span class="sm:hidden">通知</span>
+                    </button>
+                    <button onclick="openThemeModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-2 sm:px-4 py-2 rounded-lg flex items-center transition duration-300">
+                        <svg class="icon mr-0 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                        <span class="hidden sm:inline">主题</span>
+                        <span class="sm:hidden">主题</span>
+                    </button>
+                    <button id="addAccountBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-2 rounded-lg flex items-center transition duration-300">
+                        <svg class="icon mr-0 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span class="hidden sm:inline">添加</span>
+                        <span class="sm:hidden">添加</span>
+                    </button>
+                    <button onclick="window.location.href='index.html'" class="bg-gray-600 hover:bg-gray-700 text-white px-2 sm:px-4 py-2 rounded-lg flex items-center transition duration-300">
+                        <svg class="icon mr-0 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        <span class="hidden sm:inline">首页</span>
+                        <span class="sm:hidden">首页</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 统计卡片折叠按钮 -->
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-gray-500 md:hidden">统计信息</span>
+            <button onclick="toggleStats()" class="text-gray-500 hover:text-gray-700 p-2 flex items-center gap-1" id="toggleStatsBtn">
+                <span class="text-sm hidden md:inline">展开统计</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="toggleStatsIcon">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div id="statsContainer" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8 transition-all duration-300 hidden">
+            <div class="stat-card bg-white rounded-xl shadow-md card-hover transition duration-300">
+                <div class="flex flex-col items-center justify-center h-full">
+                    <div class="icon-wrapper p-4 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg class="icon icon-lg text-blue-600 w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="stat-label text-xs md:text-sm font-medium text-gray-600">总账号数</p>
+                        <p class="stat-value text-2xl md:text-3xl font-bold text-gray-900" id="totalAccounts">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card bg-white rounded-xl shadow-md card-hover transition duration-300">
+                <div class="flex flex-col items-center justify-center h-full">
+                    <div class="icon-wrapper p-4 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="icon icon-lg text-green-600 w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="stat-label text-xs md:text-sm font-medium text-gray-600">可用账号</p>
+                        <p class="stat-value text-2xl md:text-3xl font-bold text-gray-900" id="availableAccounts">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card bg-white rounded-xl shadow-md card-hover transition duration-300">
+                <div class="flex flex-col items-center justify-center h-full">
+                    <div class="icon-wrapper p-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <svg class="icon icon-lg text-yellow-600 w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="stat-label text-xs md:text-sm font-medium text-gray-600">已出租</p>
+                        <p class="stat-value text-2xl md:text-3xl font-bold text-gray-900" id="rentedAccounts">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card bg-white rounded-xl shadow-md card-hover transition duration-300">
+                <div class="flex flex-col items-center justify-center h-full">
+                    <div class="icon-wrapper p-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="icon icon-lg text-red-600 w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="stat-label text-xs md:text-sm font-medium text-gray-600">维护中</p>
+                        <p class="stat-value text-2xl md:text-3xl font-bold text-gray-900" id="maintenanceAccounts">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏分类导航 -->
+        <div class="mb-6">
+            <div class="flex flex-wrap gap-2 items-center" id="gameFilterContainer">
+                <button class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition duration-300 filter-btn active" data-filter="all">
+                    全部游戏
+                </button>
+                <div class="relative group game-filter-item" data-game="光·遇">
+                    <button class="px-4 py-2 game-sky text-white rounded-full hover:opacity-90 transition duration-300 filter-btn flex items-center" data-filter="光·遇">
+                        <img src="gy.png" alt="光遇" class="w-4 h-4 mr-1 inline-block object-contain">
+                        <img src="tp/logo6.png" alt="光遇" class="h-4 inline-block object-contain">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 账号列表 -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden" id="accountListContainer">
+            <div class="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <h2 class="text-lg font-semibold text-gray-800 whitespace-nowrap">账号列表</h2>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="searchInput" placeholder="搜索账号..." class="pl-4 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <select id="sortSelect" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="default">默认排序</option>
+                        <option value="price-asc">价格从低到高</option>
+                        <option value="price-desc">价格从高到低</option>
+                        <option value="phone">按手机号排序</option>
+                    </select>
+                </div>
+            </div>
+            <div class="md:overflow-x-auto">
+                <!-- 手机端卡片列表 -->
+                <div id="mobileAccountsList" class="md:hidden p-4">
+                    <!-- 动态生成手机端账号卡片 -->
+                </div>
+                
+                <!-- 桌面端表格 -->
+                <table class="min-w-full divide-y divide-gray-200 hidden md:table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">游戏/账号</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">特殊属性</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="accountsTableBody">
+                        <!-- 动态生成账号列表 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 数据备份区域 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6 relative z-10">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                </svg>
+                数据备份
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">备份所有账号数据、主题设置等信息。建议定期备份以防数据丢失。</p>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="exportAllData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-300">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    导出数据
+                </button>
+                <button onclick="importAllData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-300">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    导入数据
+                </button>
+                <input type="file" id="importDataFile" accept=".json" class="hidden" onchange="handleImportData(this)">
+                <button onclick="openRecycleBinModal()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-300 relative" style="background-color: #ea580c;">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>回收站</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 添加账号模态框 -->
+    <div id="addAccountModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-2 sm:p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md sm:max-w-2xl mx-auto max-h-[95vh] sm:max-h-screen overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">添加新账号</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="icon icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="accountForm" class="px-4 sm:px-6 py-4">
+                <div class="space-y-3">
+                    <!-- 游戏名称 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">游戏名称</label>
+                        <select id="gameName" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" required>
+                            <option value="">请选择</option>
+                            <option value="光·遇">光·遇</option>
+                            <option value="英雄联盟">英雄联盟</option>
+                            <option value="王者荣耀">王者荣耀</option>
+                            <option value="原神">原神</option>
+                        </select>
+                    </div>
+                    <!-- 服务器/区服 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">服务器</label>
+                        <input type="text" id="server" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="如：国服">
+                    </div>
+                    <!-- 绑定手机 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">绑定手机</label>
+                        <input type="tel" id="phone" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="手机号">
+                    </div>
+                    <!-- 红蜡烛 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">红蜡烛</label>
+                        <input type="number" id="redCandles" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="0" min="0">
+                    </div>
+                    <!-- 白蜡烛 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">白蜡烛</label>
+                        <input type="number" id="whiteCandles" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="0" min="0">
+                    </div>
+                    <!-- 爱心数量 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">爱心</label>
+                        <input type="number" id="heartsCount" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="0" min="0">
+                    </div>
+                    <!-- 租金 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">租金</label>
+                        <input type="number" id="dailyPrice" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="金额" min="0" required>
+                        <select id="priceUnit" class="w-16 shrink-0 border border-gray-300 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="hour" selected>时</option>
+                            <option value="day">日</option>
+                            <option value="week">周</option>
+                            <option value="month">月</option>
+                            <option value="year">年</option>
+                        </select>
+                    </div>
+                    <!-- 押金 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0">押金</label>
+                        <input type="number" id="deposit" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="元" min="0">
+                    </div>
+                    <!-- 光遇特殊字段 -->
+                    <div id="skyFields" class="hidden space-y-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700 w-20 shrink-0">毕业进度</label>
+                            <input type="text" id="graduationProgress" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="如：全图毕业">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700 w-20 shrink-0">复刻物品</label>
+                            <input type="text" id="replicaItems" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="如：蝙蝠斗">
+                        </div>
+                    </div>
+                    <!-- 账号备注 -->
+                    <div class="flex items-start gap-2">
+                        <label class="text-sm font-medium text-gray-700 w-20 shrink-0 pt-2">备注</label>
+                        <textarea id="remarks" rows="2" class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="其他信息..."></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex gap-3">
+                    <button type="button" id="cancelBtn" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-300 text-sm">取消</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 text-sm">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 出租模态框 -->
+    <div id="rentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">出租账号</h3>
+                <button onclick="closeRentModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="icon icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">租客昵称 <span class="text-gray-400 font-normal text-xs">（可选）</span></label>
+                    <input type="text" id="renterName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="请输入租客昵称">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">联系方式 <span class="text-gray-400 font-normal text-xs">（可选）</span></label>
+                    <input type="text" id="renterContact" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="手机号/微信">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">租赁时长</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="rentDuration" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="时长" min="1">
+                        <select id="rentUnit" class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                            <option value="week">周</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">预计费用</label>
+                    <p class="text-2xl font-bold text-blue-600" id="estimatedCost">¥0</p>
+                </div>
+                <div id="skyRentFields" class="hidden mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="needHeartService" class="mr-2">
+                        <span class="text-sm text-gray-700">需要代肝爱心任务</span>
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeRentModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-300">取消</button>
+                <button onclick="confirmRent()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300">确认出租</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题设置模态框 -->
+    <div id="themeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">主题设置</h3>
+                <button onclick="closeThemeModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="icon icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <!-- 背景图片选择 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">选择背景图片：</h4>
+                    <div id="themeBgOptions" class="grid grid-cols-3 gap-3">
+                        <!-- 动态生成背景选项 -->
+                    </div>
+                </div>
+                
+                <!-- 背景亮度调节 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">背景亮度：</h4>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-gray-500">暗</span>
+                        <input type="range" id="brightnessSlider" min="20" max="100" value="100" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateBrightness(this.value)">
+                        <span class="text-xs text-gray-500">亮</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">当前亮度: <span id="brightnessValue">100</span>%</p>
+                </div>
+                
+                <!-- 资料卡亮度调节 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">资料卡亮度：</h4>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-gray-500">暗</span>
+                        <input type="range" id="cardBrightnessSlider" min="50" max="150" value="100" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateCardBrightness(this.value)">
+                        <span class="text-xs text-gray-500">亮</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">当前亮度: <span id="cardBrightnessValue">100</span>%</p>
+                </div>
+                
+                <!-- 背景颜色选择 -->
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">背景颜色：</h4>
+                    <div class="grid grid-cols-6 gap-2">
+                        <!-- 暗黑系列 -->
+                        <button onclick="setBgColor('bg-gray-900')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #111827;" title="暗黑"></button>
+                        <button onclick="setBgColor('bg-slate-800')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #1e293b;" title="深灰"></button>
+                        <button onclick="setBgColor('bg-zinc-700')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #3f3f46;" title="中灰"></button>
+                        <!-- 灰色系列 -->
+                        <button onclick="setBgColor('bg-gray-400')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #9ca3af;" title="灰色"></button>
+                        <button onclick="setBgColor('bg-gray-500')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #6b7280;" title="深灰"></button>
+                        <button onclick="setBgColor('bg-gray-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #4b5563;" title="暗灰"></button>
+                        <!-- 彩色系列 -->
+                        <button onclick="setBgColor('bg-blue-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #2563eb;" title="蓝色"></button>
+                        <button onclick="setBgColor('bg-purple-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #9333ea;" title="紫色"></button>
+                        <button onclick="setBgColor('bg-pink-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #db2777;" title="粉色"></button>
+                        <button onclick="setBgColor('bg-red-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #dc2626;" title="红色"></button>
+                        <button onclick="setBgColor('bg-orange-600')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #ea580c;" title="橙色"></button>
+                        <button onclick="setBgColor('bg-pink-500')" class="w-10 h-10 rounded-lg border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: #ec4899;" title="标准粉"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeThemeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-300">取消</button>
+                <button onclick="saveThemeSettings()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 更换卡片背景模态框 -->
+    <div id="cardBgModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">更换卡片背景</h3>
+                <button onclick="closeCardBgModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="icon icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <p class="text-sm text-gray-600 mb-4">点击选择喜欢的背景图片：</p>
+                <div id="cardBgOptions" class="grid grid-cols-3 gap-3">
+                    <!-- 动态生成背景选项 -->
+                </div>
+                <!-- 本地图片选择 -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 mb-3">或使用自定义图片：</p>
+                    <div class="flex items-center space-x-3">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="file" id="customBgInput" accept="image/*" class="hidden" onchange="handleCustomBgSelect(this)">
+                            <div class="flex items-center justify-center px-4 py-3 border-2 border-dashed border-blue-400 rounded-lg hover:bg-blue-50 transition duration-300">
+                                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-sm text-blue-600 font-medium">从相册选择</span>
+                            </div>
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">支持 JPG、PNG、GIF 格式</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeCardBgModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-300">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 回收站模态框 -->
+    <div id="recycleBinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    回收站
+                    <span id="recycleBinCount" class="ml-2 bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full">0</span>
+                </h3>
+                <button onclick="closeRecycleBinModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                <div id="recycleBinList" class="space-y-4">
+                    <!-- 动态生成回收站列表 -->
+                </div>
+                <div id="recycleBinEmpty" class="hidden text-center py-8 text-gray-500">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <p>回收站是空的</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
+                <p class="text-sm text-gray-600">已删除的账号会保留在回收站中</p>
+                <button onclick="clearRecycleBin()" id="clearRecycleBinBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center transition duration-300 text-sm">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    清空回收站
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="notification.js"></script>
+</body>
+</html>
